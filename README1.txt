@@ -11,7 +11,7 @@ The virtualization engine is a web-app accessible from mobile browsers, powered 
 
 You'll need [Node.JS and NPM](https://nodejs.org/en/) to run this subsystem. Make sure those are installed on your system (v4.4.2+ LTS or v5.0.0+ are fine), then follow the steps below. You will be working in the terminal.
 
-1. Open a terminal (or command prompt) in the `_code` folder.
+1. Open a terminal (or command prompt) in the `1_code` folder.
 
 2. Install the required packages by running:
 ```
@@ -43,7 +43,7 @@ As of *04.01.2016*, the only functional component of the server is the GUI.
 
 You'll need [Node.JS and NPM](https://nodejs.org/en/) to run this subsystem. Make sure those are installed on your system (v4.4.2+ LTS or v5.0.0+ are fine), then follow the steps below. You will be working in the terminal.
 
-1. Open a terminal (or command prompt) in the `_code` folder.
+1. Open a terminal (or command prompt) in the `1_code` folder.
 
 2. Install the required packages by running:
 ```
