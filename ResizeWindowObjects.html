@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js Expanse Resize Windows</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #f0f0f0;
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+
+		<script src="../build/three.min.js"></script>
+
+		<script src="js/controls/TrackballControls.js"></script>
+
+		<script src="js/libs/stats.min.js"></script>
+
+		<script>
+		
+			var renderer, scene, camera, controls ;
+
+init();
+
+function init(){
+    
+    
+    renderer=new THREE.WebGLRenderer({alpha:true});
+    renderer.setClearColor(0xaaaaaa);
+    renderer.setSize(innerWidth,innerHeight);
+    document.body.appendChild(renderer.domElement);
+    
+    scene=new THREE.Scene();
+    
+					camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+					camera.position.z = 1000;
+    
+		controls = new THREE.TrackballControls( camera );
+					controls.rotateSpeed = 1.0;
+					controls.zoomSpeed = 1.2;
+					controls.panSpeed = 1.0;
+					controls.noZoom = false;
+					controls.noPan = false;
+					controls.staticMoving = true;
+					controls.dynamicDampingFactor = 0.2;
+
+    
+    
+    
+    var light=new THREE.AmbientLight(0xffffff,10,20);
+    light.position.set(-10,10,10);
+    scene.add(light);
+    
+    
+    //Create a mesh
+    var object=new THREE.Mesh(
+        new THREE.BoxGeometry(400,300,10),
+        new THREE.MeshLambertMaterial({color:0x00aaff})
+        );
+    
+    //create spheres on vertexes which will be used to resize the mesh
+    var sphere=new THREE.Mesh(
+        new THREE.SphereGeometry(10,10,10,80,80),
+        new THREE.MeshBasicMaterial({color:0x000000})
+        );
+        
+        //initialize vertex helpers
+    var vertexHelpers=[];
+    for(var i=0;i<object.geometry.vertices.length;i++){
+        var vertexHelper=sphere.clone();
+        var vertexPosition=object.geometry.vertices[i];
+        vertexHelper.position.copy(vertexPosition);
+        vertexHelper.visible=false;
+        vertexHelper.data={index:i};
+        scene.add(vertexHelper);
+        vertexHelpers.push(vertexHelper);
+    }
+    
+    var plane=new THREE.Mesh(
+        new THREE.PlaneBufferGeometry(2000,2000,8,8),
+        new THREE.MeshBasicMaterial({color:0xaaaaaa,transparent:true,opacity:.1, visisble:false})
+        );
+    //plane.visible=false;
+    
+    scene.add(object,plane);
+    
+    
+    
+    var raycaster=new THREE.Raycaster();
+    var mouse=new THREE.Vector2();
+    var INTERSECTED,SELECTED;
+    
+    var mouseDown=false;
+    var mode='resize mode';
+    
+    
+    renderer.domElement.addEventListener('mousemove',onMouseMove,false);
+    renderer.domElement.addEventListener('mousedown',onMouseDown,false);
+    renderer.domElement.addEventListener('mouseup',onMouseUp,false);
+    
+    function onMouseMove(e){
+        e.preventDefault();
+        mouse.x=(e.clientX/innerWidth)*2-1;
+        mouse.y=-(e.clientY/innerHeight)*2+1;
+        raycaster.setFromCamera(mouse,camera);
+        
+        if(SELECTED){
+            plane.position.copy(SELECTED.position);
+            plane.lookAt(camera.position);
+            var intersects=raycaster.intersectObject(plane);
+            if(mode==='resize mode'){
+                
+                var increaseRatio=intersects[0].point.sub(object.position).length() / SELECTED.position.sub(object.position).length();
+                object.scale.set(
+                    object.scale.x*increaseRatio,
+                    object.scale.y*increaseRatio,
+                    object.scale.z*increaseRatio
+                );
+
+                    for(var i=0;i<vertexHelpers.length;i++){
+                    var vector=new THREE.Vector3().copy(vertexHelpers[i].position.sub(object.position));
+                    vector.multiplyScalar(increaseRatio);
+                    vertexHelpers[i].position.copy(vector);
+                }
+            }
+            
+            if(mode==='edit mode'){
+                SELECTED.position.copy(intersects[0].point);
+                object.worldToLocal(intersects[0].point);//if the cube has been scaled the vertices coordinates don't match the world coordinates. This line converts the vector to local coordinates.
+                object.geometry.vertices[SELECTED.data.index].copy(intersects[0].point);
+                object.geometry.verticesNeedUpdate=true;
+            }
+            
+            return;
+
+        }
+        
+        var intersects=raycaster.intersectObjects(scene.children);
+        var metObject=false,metVertex=undefined;
+        
+        for(var i=0;i<intersects.length;i++){
+            var result=intersects[i].object;
+            if(result==object)metObject=true;
+            if(result.geometry instanceof THREE.SphereGeometry && !metVertex)metVertex=result;
+        }
+        if(metVertex){
+            if(INTERSECTED!=metVertex)INTERSECTED=metVertex;
+            document.body.style.cursor='move';
+        }else{
+            INTERSECTED=null;
+            document.body.style.cursor='auto';
+        }
+        
+        if((metVertex||metObject)&&!mouseDown){
+            object.material.opacity=.5;
+            for(var i=0;i<vertexHelpers.length;i++){
+                vertexHelpers[i].visible=true;
+            }
+        }else{
+            object.material.opacity=1;
+            for(var i=0;i<vertexHelpers.length;i++){
+                vertexHelpers[i].visible=false;
+            }
+        }
+    }
+    function onMouseDown(e){
+        e.preventDefault();
+        if(INTERSECTED){ 
+            controls.enabled=false;
+            SELECTED=INTERSECTED;
+        }
+        mouseDown=true;
+    }
+    function onMouseUp(e){
+        e.preventDefault();
+        controls.enabled=true;
+        SELECTED=null;
+        document.body.style.cursor='auto';
+        mouseDown=false;
+    }
+    
+    
+    
+    var modeButton=document.createElement('button');
+    modeButton.innerHTML=mode;
+    modeButton.style.cssText='position:absolute;top:10px;';
+    modeButton.addEventListener('click',function(){
+        mode=mode==='resize mode'?'edit mode':'resize mode';
+        modeButton.innerHTML=mode;
+    },false);
+    document.body.appendChild(modeButton);
+    
+    var planeButton=document.createElement('button');
+    var view='plane visible';
+    planeButton.innerHTML=view;
+    planeButton.style.cssText='position:absolute;top:40px;';
+    planeButton.addEventListener('click',function(){
+        if(view==='plane visible'){
+            view='plane hidden';
+            plane.visible=false;
+        }else{
+            view='plane visible';
+            plane.visible=true;
+        }
+        planeButton.innerHTML=view;
+    },false);
+    document.body.appendChild(planeButton);
+    
+    animate();
+    
+}
+function animate(){
+    requestAnimationFrame(animate);
+    renderer.render(scene,camera);
+    controls.update();
+}
+
+
+		</script>
+
+	</body>
+</html>
