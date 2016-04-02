@@ -5,7 +5,7 @@ Expanse is comprised of four subsystems - **Virtualization**, **Window Capture**
 
 ---
 
-### Virtualization (and Server)
+### Virtualization
 
 The virtualization engine is a web-app accessible from mobile browsers, powered by [three.js](http://threejs.org). It requires a bare-bones server infrastructure to run.
 
@@ -37,7 +37,7 @@ $ npm start
 
 ---
 
-### Sever (GUI only)
+### Server (GUI only)
 
 As of *04.01.2016*, the only functional component of the server is the GUI.
 
